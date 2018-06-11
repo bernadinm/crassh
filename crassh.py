@@ -39,7 +39,7 @@ except NameError:
     Functions
 """
 
-def send_command(command="show ver", hostname="Switch", bail_timeout=60):
+def send_command(command="show ver", hostname="Switch", bail_timeout=60, bailquit=False):
     """Sending commands to a switch, router, device, whatever!
 
         Args:
@@ -48,6 +48,8 @@ def send_command(command="show ver", hostname="Switch", bail_timeout=60):
            hostname (str): The hostname of the device (*expected in the* ``prompt``).
 
            bail_timeout (int): How long to wait for ``command`` to finish before giving up.
+
+           bailquit (boolean): Quit after bailing once. User must restart command from the beginning.
 
         Returns:
            str.  A text blob from the device, including line breaks.
@@ -80,6 +82,8 @@ def send_command(command="show ver", hostname="Switch", bail_timeout=60):
         if now == timeout:
             print("\n Command %s took %s secs to run, bailing!" % (command, str(bail_timeout)))
             output += "crassh bailed on command: " + command
+            if bailquit:
+                sys.exit(1)
             keeplooping = False
             break
 
@@ -163,6 +167,7 @@ def print_help(exitcode=0):
     print("   -t set a command timeout in seconds [optional | Default: 60]")
     print("   -T set a connection timeout in seconds [optional | Default: 10]")
     print("   -X disable \"do no harm\" [optional]")
+    print("   -q quit on bail")
     print("   -Q disable \"quit on failure\" [optional]")
     print("   -e set an enable password [optional]")
     print("   -d set a delay (in seconds) between commands [optional]")
@@ -462,6 +467,7 @@ def main():
     delay_command = False
     writeo = True
     printo = False
+    bailquit = False 
     bail_timeout = 60
     connect_timeout = 10
     sysexit = True
@@ -473,7 +479,7 @@ def main():
 
     # Get script options - http://www.cyberciti.biz/faq/python-command-line-arguments-argv-example/
     try:
-        myopts, args = getopt.getopt(sys.argv[1:], "c:s:t:T:d:A:U:P:B:b:E:hpwXeQ")
+        myopts, args = getopt.getopt(sys.argv[1:], "c:s:t:T:d:A:U:P:B:b:E:hpwXeqQ")
     except getopt.GetoptError as e:
         print("\n ERROR: %s" % str(e))
         print_help(2)
@@ -500,6 +506,9 @@ def main():
         if o == '-p':
             writeo = False
             printo = True
+
+        if o == '-q':
+            bailquit = True
 
         if o == '-w':
             writeo = True
@@ -659,7 +668,7 @@ def main():
 
             # Send the Command
             print("%s: Running: %s" % (hostname, cmd))
-            output = send_command(cmd, hostname, bail_timeout)
+            output = send_command(cmd, hostname, bail_timeout, bailquit)
 
             # Print the output (optional)
             if printo:
